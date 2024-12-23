@@ -4,6 +4,7 @@ import com.payment.system_payment.domain.PaymentRequest
 import com.payment.system_payment.domain.enum.BookingStatus
 import com.payment.system_payment.domain.enum.PaymentStatus
 import com.payment.system_payment.domain.enum.Provider
+import com.payment.system_payment.domain.model.Booking
 import com.payment.system_payment.domain.model.Payment
 import com.payment.system_payment.repository.PaymentRepository
 import org.bson.types.ObjectId
@@ -18,51 +19,52 @@ class PaymentService(private val paymentRepository: PaymentRepository,
         val bookingFromDB = bookingService.findBookingByToken(paymentRequest.token)
             ?: throw RuntimeException("Booking not found")
         val paymentFromDB = findPaymentByBookingId(bookingFromDB.id)
+            ?: throw RuntimeException("Booking have been canceled")
 
         if (bookingFromDB.status == BookingStatus.PAID) {
             throw RuntimeException("This booking has already been paid!")
         } else {
-            paymentFromDB.status = PaymentStatus.PENDING
-
-            if (paymentRequest.provider == Provider.RUSSIA) {
-                payRussianProvider(paymentFromDB)
+            when (paymentRequest.provider) {
+                Provider.RUSSIA -> {
+                    payRussianProvider(paymentFromDB, bookingFromDB)
+                }
+                else -> {
+                    payOtherProvider(paymentFromDB, bookingFromDB)
+                }
             }
-            if (paymentRequest.provider == Provider.OTHER) {
-                payOtherProvider(paymentFromDB)
-            }
 
-            paymentFromDB.bookingId = bookingFromDB.id
             paymentRepository.save(paymentFromDB)
         }
 
         return paymentFromDB
     }
 
-    fun payRussianProvider(payment: Payment): Payment {
-        val randomValues = Random.nextInt(0, 101)
-        if (randomValues < 50) {
-            payment.status = PaymentStatus.SUCCESS
-        } else {
-            payment.status = PaymentStatus.FAILED
-        }
-
+    fun payRussianProvider(payment: Payment, booking: Booking): Payment {
+        generationPaymentSendingStatus(payment, booking)
         return payment
     }
 
-    fun payOtherProvider(payment: Payment): Payment {
+    fun payOtherProvider(payment: Payment, booking: Booking): Payment {
         try {
             Thread.sleep(10000)
         } catch (exception: InterruptedException) {
             Thread.currentThread().interrupt()
         }
 
+        generationPaymentSendingStatus(payment, booking)
+
+        return payment
+    }
+
+    fun generationPaymentSendingStatus(payment: Payment, booking: Booking): Payment {
         val randomValues = Random.nextInt(0, 101)
         if (randomValues < 50) {
             payment.status = PaymentStatus.SUCCESS
+            booking.status = BookingStatus.PAID
+            bookingService.saveBooking(booking)
         } else {
             payment.status = PaymentStatus.FAILED
         }
-
         return payment
     }
 

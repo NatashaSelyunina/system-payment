@@ -58,4 +58,8 @@ class BookingService(private val bookingRepository: BookingRepository, private v
     fun findBookingByToken(token: String): Booking? {
         return bookingRepository.findByToken(token)
     }
+
+    fun saveBooking(booking: Booking) {
+        bookingRepository.save(booking)
+    }
 }
