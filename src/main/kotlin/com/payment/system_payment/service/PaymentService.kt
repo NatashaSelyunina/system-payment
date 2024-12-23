@@ -15,7 +15,7 @@ import kotlin.random.Random
 class PaymentService(private val paymentRepository: PaymentRepository,
                      private val bookingService: BookingService) {
 
-    fun pay(paymentRequest: PaymentRequest): Payment {
+    fun pay(paymentRequest: PaymentRequest): String {
         val bookingFromDB = bookingService.findBookingByToken(paymentRequest.token)
             ?: throw RuntimeException("Booking not found")
         val paymentFromDB = findPaymentByBookingId(bookingFromDB.id)
@@ -26,42 +26,49 @@ class PaymentService(private val paymentRepository: PaymentRepository,
         } else {
             when (paymentRequest.provider) {
                 Provider.RUSSIA -> {
-                    payRussianProvider(paymentFromDB, bookingFromDB)
+                    payRussianProvider(paymentFromDB)
                 }
                 else -> {
-                    payOtherProvider(paymentFromDB, bookingFromDB)
+                    payOtherProvider(paymentFromDB)
                 }
             }
 
             paymentRepository.save(paymentFromDB)
         }
 
-        return paymentFromDB
+        return when (paymentFromDB.status) {
+            PaymentStatus.SUCCESS -> {
+                bookingFromDB.status = BookingStatus.PAID
+                bookingService.saveBooking(bookingFromDB)
+                "The payment was successful"
+            }
+            else -> {
+                "Payment failed, try paying again"
+            }
+        }
     }
 
-    fun payRussianProvider(payment: Payment, booking: Booking): Payment {
-        generationPaymentSendingStatus(payment, booking)
+    fun payRussianProvider(payment: Payment): Payment {
+        generationPaymentSendingStatus(payment)
         return payment
     }
 
-    fun payOtherProvider(payment: Payment, booking: Booking): Payment {
+    fun payOtherProvider(payment: Payment): Payment {
         try {
             Thread.sleep(10000)
         } catch (exception: InterruptedException) {
             Thread.currentThread().interrupt()
         }
 
-        generationPaymentSendingStatus(payment, booking)
+        generationPaymentSendingStatus(payment)
 
         return payment
     }
 
-    fun generationPaymentSendingStatus(payment: Payment, booking: Booking): Payment {
+    fun generationPaymentSendingStatus(payment: Payment): Payment {
         val randomValues = Random.nextInt(0, 101)
         if (randomValues < 50) {
             payment.status = PaymentStatus.SUCCESS
-            booking.status = BookingStatus.PAID
-            bookingService.saveBooking(booking)
         } else {
             payment.status = PaymentStatus.FAILED
         }

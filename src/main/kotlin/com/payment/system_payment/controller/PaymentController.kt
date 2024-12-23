@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*
 class PaymentController(private val paymentService: PaymentService) {
 
     @PostMapping
-    fun pay(@RequestBody @Valid paymentRequest: PaymentRequest): Payment {
+    fun pay(@RequestBody @Valid paymentRequest: PaymentRequest): String {
         return paymentService.pay(paymentRequest)
     }
 
