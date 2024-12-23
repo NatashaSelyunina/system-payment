@@ -64,4 +64,27 @@ class BookingService(private val bookingRepository: BookingRepository, private v
     fun saveBooking(booking: Booking) {
         bookingRepository.save(booking)
     }
+
+    fun bookingExpiryTime() {
+        val payments = paymentService.getAllPayments()
+
+        payments.forEach {
+            if (it.status == PaymentStatus.PENDING || it.status == PaymentStatus.FAILED) {
+                val booking = it.bookingId?.let { it1 -> bookingRepository.findById(it1) }
+                val expirationTime = LocalDateTime.now().minusMinutes(10)
+                if (booking != null) {
+                    if (booking.createdAt!!.isBefore(expirationTime)) {
+                        cancelBookingAndDeletePayment(booking, it)
+                    }
+                }
+            }
+        }
+    }
+
+    fun cancelBookingAndDeletePayment(booking: Booking, payment: Payment) {
+        booking.status = BookingStatus.CANCELED
+        bookingRepository.save(booking)
+
+        paymentService.deletePayment(payment)
+    }
 }
