@@ -6,6 +6,7 @@ import com.payment.system_payment.domain.model.Booking
 import com.payment.system_payment.domain.model.Payment
 import com.payment.system_payment.repository.BookingRepository
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 import java.util.*
 
 @Service
@@ -15,6 +16,7 @@ class BookingService(private val bookingRepository: BookingRepository, private v
         val token = UUID.randomUUID().toString()
         val newBooking = Booking(token)
         newBooking.status = BookingStatus.NEW
+        newBooking.createdAt = LocalDateTime.now()
         bookingRepository.save(newBooking)
 
         val newPayment = Payment()

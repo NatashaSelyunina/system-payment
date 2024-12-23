@@ -4,7 +4,6 @@ import com.payment.system_payment.domain.PaymentRequest
 import com.payment.system_payment.domain.enum.BookingStatus
 import com.payment.system_payment.domain.enum.PaymentStatus
 import com.payment.system_payment.domain.enum.Provider
-import com.payment.system_payment.domain.model.Booking
 import com.payment.system_payment.domain.model.Payment
 import com.payment.system_payment.repository.PaymentRepository
 import org.bson.types.ObjectId
